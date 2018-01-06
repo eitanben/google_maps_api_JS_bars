@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <title>My Geocode App</title>
+</head>
+<body>
+  <div class="container">
+    <h2 id="text-center">Enter Zipcode: </h2>
+    <form id="location-form">
+      <input type="text" id="location-input" class="form-control form-control-lg">
+      <br>
+      <button type="submit" class="btn btn-primary btn-block">Submit</button>
+    </form>
+
+    <div class="row">
+      <div id="map" class="col-sm-6"></div>
+      <div id="table" class="col-sm-6">
+    </div>
+    </div>
+  </div>
+  <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAB3voU1gcju213VFgnu-qs2nSBXe4HVqk&libraries=places"></script>
+
+  <script>
+    // Call Geocode
+    //geocode();
+
+    // Get location form
+    var locationForm = document.getElementById('location-form');
+
+    // Listen for submit
+    locationForm.addEventListener('submit', geocode);
+
+    function geocode(e){
+      // Prevent actual submit
+      e.preventDefault();
+
+      var map;
+      var service;
+      var infowindow;
+      var lat;
+      var lng;
+
+      function callback(results, status) {
+        if (status == google.maps.places.PlacesServiceStatus.OK) {
+          var rowOutput = '';
+          for (var i = 0; i < 10; i++) {
+            var place = results[i];
+
+            rowOutput += `<tr>
+            <th scope="row">${place.name ? place.name : "Name Missing"}</th>
+            <td>${place.vicinity}</td>
+            <td>${place.opening_hours ? place.opening_hours.open_now ? "Yes" : "No" : "Unknown"}</td>
+            <td>
+              <input type="checkbox" />
+            </td>
+            </tr>
+            `;
+
+            //-------- please read this -----
+            //use the "place" variable to post/put into Firebase; name, vicinity, opening_hours are the attributes to store. good luck!
+            //------------------------------------------------------
+
+            var marker = new google.maps.Marker({
+              map: map,
+              position: place.geometry.location
+            });
+          }
+          var tableOutput = `<table class="table">
+          <thead>
+          <tr>
+          <th scope="col">Bar Name</th>
+          <th scope="col">Address</th>
+          <th scope="col">Open Now?</th>
+          <th scope="col">Fab?</th>
+          </tr>
+          </thead>
+          <tbody>
+          ${rowOutput}
+          </tbody>
+          </table>`;
+          document.getElementById('table').innerHTML = tableOutput;
+        }
+        var center = map.getCenter();
+        google.maps.event.trigger(map, "resize");
+        map.setCenter(center);
+      }
+
+      var location = document.getElementById('location-input').value;
+
+      axios.get('https://maps.googleapis.com/maps/api/geocode/json',{
+        params:{
+          address:location,
+          key:'AIzaSyCBzRvVnw3ZoB3C-Sy9-hjq587aPST77RY'
+        }
+      })
+      .then(function(response){
+
+         lat = response.data.results[0].geometry.location.lat;
+         lng = response.data.results[0].geometry.location.lng;
+         var placeLatLong = new google.maps.LatLng(lat,  lng);
+
+         map = new google.maps.Map(document.getElementById('map'), {
+            center: placeLatLong,
+            zoom: 14,
+            scrollwheel: false
+          });
+
+         var request = {
+           location: placeLatLong,
+           radius: '5000',
+           type: ['bar']
+         };
+
+         service = new google.maps.places.PlacesService(map);
+         service.nearbySearch(request, callback);
+
+      })
+      .catch(function(error){
+        console.log(error);
+      });
+
+    }
+  </script>
+</body>
+</html>
